@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  labels:
+    k8s-app: wmi-exporter
+  name: wmi-exporter
+  namespace: kube-system
+subsets:
+- addresses:
+  - ip: 172.31.20.44
+    targetRef:
+      kind: Node
+      name: ip-172-31-20-44.ec2.internal
+  ports:
+  - name: http-metrics
+    port: 9182
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    k8s-app: wmi-exporter
+  name: wmi-exporter
+  namespace: kube-system
+spec:
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 9182
+    protocol: TCP
+    targetPort: 9182
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    k8s-app: wmi-exporter
+  name: wmi-exporter
+  namespace: mornitoring
+spec:
+  endpoints:
+  - interval: 30s
+    port: http-metrics
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - kube-system
+  selector:
+    matchLabels:
+      k8s-app: wmi-exporter

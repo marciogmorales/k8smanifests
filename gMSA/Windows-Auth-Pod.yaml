@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: amazon-eks-gmsa-test
+  name: amazon-eks-gmsa-test
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: amazon-eks-gmsa-test
+  template:
+    metadata:
+      labels:
+        run: amazon-eks-gmsa-test
+    spec:
+      securityContext:
+        windowsOptions:
+          gmsaCredentialSpecName: gmsaeks-account
+      containers:
+      - image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+        imagePullPolicy: Always
+        name: iis
+      nodeSelector:
+        kubernetes.io/os: windows

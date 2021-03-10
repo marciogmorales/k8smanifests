@@ -1,0 +1,47 @@
+aws eks --region us-east-1 update-kubeconfig --name EKS-Windows
+
+kubectl apply -f https://amazon-eks.s3-us-west-2.amazonaws.com/manifests/us-east-1/vpc-resource-controller/latest/vpc-resource-controller.yaml
+
+curl -o vpc-admission-webhook-deployment.yaml https://amazon-eks.s3-us-west-2.amazonaws.com/manifests/us-west-2/vpc-admission-webhook/latest/vpc-admission-webhook-deployment.yaml;
+curl -o Setup-VPCAdmissionWebhook.ps1 https://amazon-eks.s3-us-west-2.amazonaws.com/manifests/us-west-2/vpc-admission-webhook/latest/Setup-VPCAdmissionWebhook.ps1;
+curl -o webhook-create-signed-cert.ps1 https://amazon-eks.s3-us-west-2.amazonaws.com/manifests/us-west-2/vpc-admission-webhook/latest/webhook-create-signed-cert.ps1;
+curl -o webhook-patch-ca-bundle.ps1 https://amazon-eks.s3-us-west-2.amazonaws.com/manifests/us-west-2/vpc-admission-webhook/latest/webhook-patch-ca-bundle.ps1;
+
+./Setup-VPCAdmissionWebhook.ps1 -DeploymentTemplate ".\vpc-admission-webhook-deployment.yaml"
+
+kubectl get clusterrolebinding eks:kube-proxy-windows
+
+curl -o aws-auth-cm-windows.yaml https://amazon-eks.s3-us-west-2.amazonaws.com/cloudformation/2019-11-15/aws-auth-cm-windows.yaml
+
+Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
+curl -o aws-iam-authenticator.exe https://amazon-eks.s3-us-west-2.amazonaws.com/1.14.6/2019-08-22/bin/windows/amd64/aws-iam-authenticator.exe
+
+-------
+
+helm install prometheus stable/prometheus --namespace prometheus --set alertmanager.persistentVolume.storageClass="gp2",server.persistentVolume.storageClass="gp2"
+
+
+kubectl delete clusterrolebindings prometheus-alertmanager
+kubectl delete clusterrolebindings prometheus-kube-state-metrics
+kubectl delete clusterrolebindings prometheus-pushgateway
+kubectl delete clusterrolebindings prometheus-server
+
+
+kubectl delete clusterrole prometheus-alertmanager
+kubectl delete clusterrole prometheus-kube-state-metrics
+kubectl delete clusterrole prometheus-pushgateway
+kubectl delete clusterrole prometheus-server
+
+
+kubectl -n prometheus edit configmap prometheus-server
+
+    - job_name: windows_nodes
+      static_configs:
+      - targets: ['172.31.30.53:9182']
+
+kubectl create namespace grafana
+helm install grafana stable/grafana --namespace grafana --set persistence.storageClassName="gp2" --set persistence.enabled=true --set adminPassword='%TGBnhy67ujm' --values grafana.yaml --set service.type=LoadBalancer
+
+
+msiexec /i windows_exporter-0.15.0-amd64 ENABLED_COLLECTORS=os,service,container,system,net,logical_disk,cs,cpu,textfile,memory

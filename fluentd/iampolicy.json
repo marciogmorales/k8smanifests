@@ -1,0 +1,15 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [{
+		"Sid": "EKSFluentdCW",
+		"Effect": "Allow",
+		"Action": [
+			"logs:CreateLogStream",
+			"logs:DescribeLogGroups",
+			"logs:DescribeLogStreams",
+			"logs:CreateLogGroup",
+			"logs:PutLogEvents"
+		],
+		"Resource": "*"
+	}]
+}
